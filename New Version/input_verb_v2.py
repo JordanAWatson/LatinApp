@@ -1,59 +1,61 @@
 from dataclasses import dataclass
+from abc import ABC
+import mysql.connector
 
 @dataclass
-class Verb:
+class Verb(ABC):
+    '''abstract Verb class'''
+
+    def __init__(self, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
+
+@dataclass
+class Dictionary(Verb):
     pass
 
+@dataclass
+class VerbForm(Verb):
+    pass
+
+@dataclass
+class FormInfo(Verb):
+    pass
+
+def create_server_connection(host_name, user_name, user_password, db_name):
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host = host_name,
+            user = user_name,
+            password = user_password,
+            database = db_name
+        )
+        print(f"Connection to to MySQL Database '{host_name}' with Schema '{db_name}' successful")
+    except Error as error:
+        print(f"Error: '{error}'")
+        sys.exit()
+
+    return connection
 
 
 def dictionary_test_cases():
 
-    # test 1: class construction
+    # connect to database
     try:
-        v = Verb()
-        print("Test 1 pass")
+        connection = create_server_connection("127.0.0.1", "root", "admin", "latin")
+        cursor = connection.cursor()
+        print("Test pass")
     except:
-        print("Test 1 fail")
+        print("Test fail")
 
-
-    # test 2: connect to database
+    # build dictionary
     try:
-        v.connect()
-        print("Test 2 pass")
+        d = Dictionary(connection, cursor)
+        print("Test pass")
     except:
-        print("Test 2 fail")
-
-    # test 3: find if verb exists in dictionary
-    try:
-        if Verb.dictionary_find("a", "1st"):
-            raise Error
-        else:
-            print("Test 3 pass")
-
-    except:
-        print("Test 3 fail")
-
-
-    # test 4: add verb to dictionary
-    try:
-        v.dictionary_add("a", "1st")
-        v.dictionary_add("a", "2nd")
-        print("Test 4 pass")
-    except:
-        print("Test 4 fail")
-
-    # test 5: find added verb in dictionary
-    try:
-        if not Verb.dictionary_find("a", "1st"):
-            raise Error
-        else:
-            print("Test 5 pass")
-    except:
-        print("Test 5 fail")
-
-
-    # test 6: 
-
+        print("Test fail")
+        
 
 
 dictionary_test_cases()
