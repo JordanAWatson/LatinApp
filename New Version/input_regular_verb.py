@@ -102,7 +102,7 @@ print("Manual mode is recomended for irregular verbs")
 dec = input("Manual input mode? y/n: ")
 if dec == "y":
     manual(p1, p2, dec, trans)
-elif dec = "n":
+elif dec == "n":
     print("Auto-generating verbs")
     auto(p1, p2, p3, p4, dec, trans)
 else:
