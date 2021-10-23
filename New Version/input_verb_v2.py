@@ -27,67 +27,68 @@ class Verb(ABC):
     def __init__(self, connection, cursor):
         self.connection = connection
         self.cursor = cursor
+        self._built = False
 
     def build_data(self):
-        raise NotImplementedError
+        raise NotImplementedError("Child class has not implemented function")
     
     def push():
-        raise NotImplementedError
+        raise NotImplementedError("Child class has not implemented function")
 
 
 class Dictionary(Verb):
     '''interacts with dictionary table'''
     
     def __init__(self, connection, cursor):
-        self.connection = connection    # TODO test if this is inherited
-        self.cursor = cursor
+        # self.connection = connection    # TODO test if this is inherited
+        # self.cursor = cursor
+        # self.built = False
         self.pull_query = "SELECT * FROM dictionay WHERE %s == %s;"
         self.push_query = "INSERT INTO dictionary VALUES (%s, %s);"
         self.search_query = "SELECT verb FROM dictionary WHERE %s == %s;"
         self._verb = ""
         self._conjugation = ""
 
-    def set_verb(self, verb):
+    # sets _verb
+    def set_verb(self, verb) -> None:
         self._verb = verb
 
-    # sets conjugation after validating input
-    def set_conjugation(self, conjugation):
-        if (
-            conjugation != "1st"
-            or conjugation != "2nd"
-            or conjugation != "3rd"
-            or conjugaiton != "4th"
-            or conjugation != "3rd-io"
-            ):
+    # sets _conjugation after validating input
+    def set_conjugation(self, conjugation) -> None:
+        if conjugation not in {"1st", "2nd", "3rd", "4th", "4th-io"}:
             raise ValueError("Conjugaiton must be 1st, "
                              "2nd, 3rd, 4th, or 3rd-io")
         else:
             self._conjugation = conjugation
 
     # returns _verb
-    def get_verb(self):
+    def get_verb(self) -> str:
         return self._verb
 
     # returns _conjugation
-    def get_conjugation(self):
+    def get_conjugation(self) -> str:
         return self._conjugation
 
+    def to_string(self) -> None:
+        print(f"{self._verb}, {self._conjugation}")
+
     # build the data to be pushed to the database
-    def build_data(self):
-        raise NotImplementedError
+    def build_data(self) -> None:
+        self.data = (self._verb, self._conjugation)
+        self._built = True
 
     # pushes Dictionary to database
-    def push(self):
-        raise NotImplementedError
+    def push(self) -> None:
+        raise NotImplementedError("Function not implemented")
 
 
 class VerbForm(Verb):
-    '''interects with verbForm table'''
+    '''interacts with verbForm table'''
     pass
 
 
 class FormInfo(Verb):
-    '''interects with formInfo table'''
+    '''interacts with formInfo table'''
     pass
 
 def create_server_connection(host_name, user_name, user_password, db_name):
@@ -108,10 +109,15 @@ def create_server_connection(host_name, user_name, user_password, db_name):
     return connection
 
 
+
+
+
+
 def dictionary_test_cases():
     print("Starting tests:")
 
-    connection = create_server_connection("127.0.0.1", "root", "admin", "latin")
+    connection = create_server_connection("127.0.0.1", "editor", "editor",
+                                          "latin")
     cursor = connection.cursor()
 
     # build empty dictionary
@@ -131,6 +137,10 @@ def dictionary_test_cases():
     try:
         d.set_verb("a")
         d.set_conjugation("z")
+        print("Test fail")
+        print("\tconjugation shouldn't be accepted")
+    except ValueError as e:
+        print("Test pass")
     except Exception as e:
         print("Test fail")
         print("\t", e)
@@ -139,6 +149,19 @@ def dictionary_test_cases():
     try:
         d.set_verb("a")
         d.set_conjugation("1st")
+        if d.get_verb() == "a" and d.get_conjugation() == "1st":
+            print("Test pass")
+        else:
+            raise Exception
+    except Exception as e:
+        print("Test fail")
+        print("\tcouldn't build dictionary")
+        print("\t", e)
+
+    # build data
+    try:
+        d.build_data()
+        print("Test pass")
     except Exception as e:
         print("Test fail")
         print("\t", e)
