@@ -10,86 +10,120 @@
 #
 # TODO
 # complete test cases
-# implement Dictionary class
-# implement VerbForm class
-# implement FormInfo class
 # build verb insertion code
 # pass all tests
 
 
-
-from abc import ABC
 import mysql.connector
+from mysql.connector import Error
+import sys
 
-class Verb(ABC):
-    '''abstract Verb class'''
+class Verb():
 
     def __init__(self, connection, cursor):
         self.connection = connection
         self.cursor = cursor
-        self._built = False
-
-    def build_data(self):
-        raise NotImplementedError("Child class has not implemented function")
+        self.data = {}
+        self.push_query = ""
     
-    def push():
-        raise NotImplementedError("Child class has not implemented function")
+    def push(self) -> None:
+        try:
+            # values are taken from data then turned into a tuple
+            self.cursor.execute(self.push_query, tuple(self.data.values()))
+            self.connection.commit()
+        except Error as e:
+            raise Exception(f"SQL error: '{e}'")
 
 
 class Dictionary(Verb):
     '''interacts with dictionary table'''
     
     def __init__(self, connection, cursor):
-        # self.connection = connection    # TODO test if this is inherited
-        # self.cursor = cursor
-        # self.built = False
-        self.pull_query = "SELECT * FROM dictionay WHERE %s == %s;"
+        self.connection = connection
+        self.cursor = cursor
         self.push_query = "INSERT INTO dictionary VALUES (%s, %s);"
-        self.search_query = "SELECT verb FROM dictionary WHERE %s == %s;"
-        self._verb = ""
-        self._conjugation = ""
+        self.data = {
+            "verb": None,
+            "conjugation": None,
+            }
 
-    # sets _verb
+    # sets verb
     def set_verb(self, verb) -> None:
-        self._verb = verb
+        self.data["verb"] = verb
 
-    # sets _conjugation after validating input
+    # sets conjugation after validating input
     def set_conjugation(self, conjugation) -> None:
         if conjugation not in {"1st", "2nd", "3rd", "4th", "4th-io"}:
             raise ValueError("Conjugaiton must be 1st, "
                              "2nd, 3rd, 4th, or 3rd-io")
         else:
-            self._conjugation = conjugation
-
-    # returns _verb
-    def get_verb(self) -> str:
-        return self._verb
-
-    # returns _conjugation
-    def get_conjugation(self) -> str:
-        return self._conjugation
-
-    def to_string(self) -> None:
-        print(f"{self._verb}, {self._conjugation}")
-
-    # build the data to be pushed to the database
-    def build_data(self) -> None:
-        self.data = (self._verb, self._conjugation)
-        self._built = True
-
-    # pushes Dictionary to database
-    def push(self) -> None:
-        raise NotImplementedError("Function not implemented")
-
+            self.data["conjugation"] = conjugation
+        
 
 class VerbForm(Verb):
     '''interacts with verbForm table'''
-    pass
+
+    def __init__(self, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
+        self.push_query = "INSERT INTO verbForm VALUES (%s, %s);"
+        self.data = {
+            "form": "",
+            "stem": ""
+            }
+
+    # sets form
+    def set_form(self, form) -> None:
+        self.data["form"] = form
+
+    # sets stem
+    def set_stem(self, stem) -> None:
+        self.data["stem"] = stem
 
 
 class FormInfo(Verb):
     '''interacts with formInfo table'''
-    pass
+
+    def __init__(self, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
+        self.push_query = ("INSERT INTO formInfo "
+                           "VALUES(%s, %s, %s, %s, %s, %s, %s,);")
+        self.data = {
+            "form": "",
+            "voice": "",
+            "mood": "",
+            "tense": "",
+            "number": "",
+            "person": "",
+            "data": ""
+            }
+
+    # sets form
+    def set_form(self, form) -> None:
+        self.data["form"] = form
+
+    # sets voice
+    def set_form(self, voice) -> None:
+        self.data["voice"] = voice
+
+    # sets mood
+    def set_form(self, mood) -> None:
+        self.data["mood"] = mood
+
+    # sets tense
+    def set_form(self, tense) -> None:
+        self.data["tense"] = tense
+
+    # sets number
+    def set_form(self, number) -> None:
+        self.data["number"] = number
+
+    # sets person
+    def set_form(self, person) -> None:
+        self.data["person"] = person
+
+
 
 def create_server_connection(host_name, user_name, user_password, db_name):
     connection = None
@@ -104,28 +138,28 @@ def create_server_connection(host_name, user_name, user_password, db_name):
               "'{db_name}' successful")
     except Error as error:
         print(f"Error: '{error}'")
+        input()
         sys.exit()
 
     return connection
 
 
-
-
-
-
 def dictionary_test_cases():
     print("Starting tests:")
 
-    connection = create_server_connection("127.0.0.1", "editor", "editor",
+    connection = create_server_connection("127.0.0.1", "root", "admin",
                                           "latin")
     cursor = connection.cursor()
 
+    # DICTIONARY TESTS
+    print()
+    print("Dictionary tests:")
     # build empty dictionary
     try:
         d = Dictionary(connection, cursor)
-        if d.get_verb() != "":
+        if d.data["verb"] != None:
             raise ValueError("Verb was not initalised empty")
-        if d.get_conjugation() != "":
+        if d.data["conjugation"] != None:
             raise ValueError("Conjugation was not initalised empty")
         print("Test pass")
     except Exception as e:
@@ -135,7 +169,7 @@ def dictionary_test_cases():
 
     # build dictionary wrong
     try:
-        d.set_verb("a")
+        d.set_verb("amo")
         d.set_conjugation("z")
         print("Test fail")
         print("\tconjugation shouldn't be accepted")
@@ -147,23 +181,15 @@ def dictionary_test_cases():
 
     # build dictionary
     try:
-        d.set_verb("a")
+        d.set_verb("amo")
         d.set_conjugation("1st")
-        if d.get_verb() == "a" and d.get_conjugation() == "1st":
+        if d.data["verb"] == "amo" and d.data["conjugation"] == "1st":
             print("Test pass")
         else:
             raise Exception
     except Exception as e:
         print("Test fail")
         print("\tcouldn't build dictionary")
-        print("\t", e)
-
-    # build data
-    try:
-        d.build_data()
-        print("Test pass")
-    except Exception as e:
-        print("Test fail")
         print("\t", e)
 
     # push dictionary
@@ -173,6 +199,22 @@ def dictionary_test_cases():
     except Exception as e:
         print("Test fail")
         print("\t", e)
+
+
+    # VEBRFORM TESTS
+    print()
+    print("verbForm Tests:")
+    # build empty verbform
+    try:
+        v = VerbForm(connection, cursor)
+        print("Test pass")
+    except Exception as e:
+        print("Test fail")
+        print("\t", e)
+
+
+    cursor.execute("DELETE FROM Dictionary;", ())
+    connection.commit()
 
     cursor.close()
     connection.close()
