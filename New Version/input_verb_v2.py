@@ -12,11 +12,14 @@
 # complete test cases
 # build verb insertion code
 # pass all tests
+# move SQL login info to config file
 
 
 import mysql.connector
 from mysql.connector import Error
 import sys
+import configparser
+import re
 
 class Verb():
 
@@ -105,19 +108,31 @@ class FormInfo(Verb):
 
     # sets voice
     def set_form(self, voice) -> None:
-        self.data["voice"] = voice
+        if voice in ["ACT", "PAS"]:
+            self.data["voice"] = voice
+        else:
+            raise ValueError("Must be ACT or PAS")
 
     # sets mood
     def set_form(self, mood) -> None:
-        self.data["mood"] = mood
+        if mood in ["IND", "SUB", "IMP", "INF"]:
+            self.data["mood"] = mood
+        else:
+            raise ValueError("Msut be IND, SUB, IMP, or INF")
 
     # sets tense
     def set_form(self, tense) -> None:
-        self.data["tense"] = tense
+        if tense in ["PRES", "IMPF", "FUTR", "PERF", "PLPF", "FRPF"]:
+            self.data["tense"] = tense
+        else:
+            raise ValueError("Must be PRES, IMPF, FUTR, PERF, PLPF, or FRPF")
 
     # sets number
     def set_form(self, number) -> None:
-        self.data["number"] = number
+        if number in ["1st", "2nd", "3rd", "4th", "3rd-io"]:
+            self.data["number"] = number
+        else:
+            raise ValueError("Must be 1st, 2nd, 3rd, 4th, or 3rd-io")
 
     # sets person
     def set_form(self, person) -> None:
@@ -135,7 +150,7 @@ def create_server_connection(host_name, user_name, user_password, db_name):
             database = db_name
         )
         print(f"Connection to to MySQL Database '{host_name}' with Schema "
-              "'{db_name}' successful")
+              f"'{db_name}' successful")
     except Error as error:
         print(f"Error: '{error}'")
         input()
@@ -143,12 +158,21 @@ def create_server_connection(host_name, user_name, user_password, db_name):
 
     return connection
 
+# removes non character, number, and macron elements of an input
+# returns a cleaned string
+def clean_input(prompt) -> str:
+    dirty = input(prompt)
+
+    # FIXME would rather have whitelisting here
+    return re.sub("[!@#$%^&*(){}[\]|\\\\:;\"'<>,.?/_\-\+\=~`\n\t]", "", dirty)
+
 
 def dictionary_test_cases():
+    
     print("Starting tests:")
 
-    connection = create_server_connection("127.0.0.1", "root", "admin",
-                                          "latin")
+    connection = create_server_connection(host_name, user_name,
+                                          user_password, db_name)
     cursor = connection.cursor()
 
     # DICTIONARY TESTS
@@ -213,12 +237,35 @@ def dictionary_test_cases():
         print("\t", e)
 
 
-    cursor.execute("DELETE FROM Dictionary;", ())
-    connection.commit()
+    try:
+        cursor.execute("DELETE FROM dictionary;", ())
+        connection.commit()
+    except:
+        cursor.execute("DELETE FROM formInfo;", ())
+        cursor.execute("DELETE FROM verbForm;", ())
+        cursor.execute("DELETE FROM dictionary;", ())
+        connection.commit()
 
     cursor.close()
     connection.close()
         
 
+# main
+def main() -> None:
+    print("Main")
 
-dictionary_test_cases()
+
+if __name__ == "__main__":
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    ENVIROMENT = config.get("settings", "ENVIROMENT")
+    host_name = config.get("database", "host_name")
+    user_name = config.get("database", "user_name")
+    user_password = config.get("database", "user_password")
+    db_name = config.get("database", "db_name")
+
+    if ENVIROMENT == "test":
+        dictionary_test_cases()
+
+    else:
+        main()
