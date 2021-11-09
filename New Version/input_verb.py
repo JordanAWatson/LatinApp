@@ -42,28 +42,6 @@ def create_server_connection(host_name, user_name, user_password, db_name):
     return connection
 
 
-def push_query(query, data, cursor, connection):
-    try:
-        cursor.execute(query, data)
-    except Error as error:
-        print(f"Error pushing query: {query}")
-        print(f"SQL error: '{error}'")
-        cursor.close()
-        connection.close()
-        input()
-        sys.exit()
-
-    return cursor
-
-def exists(verb, table, field, cursor, connection):
-    query = (f"SELECT {field} FROM {table} " # note the space after 'Verb' is required
-             f"WHERE {field} = %s;")
-    push_query(query, (verb,), cursor, connection)
-
-    if len(cursor.fetchall()) != 0:
-        return True
-    else:
-        return False
 
 
 
@@ -83,7 +61,13 @@ def logic_error(cursor, connection):
     sys.exit()
 
 
+def clean_input(prompt) -> str:
+    ''' removes non character, number, and macron elements of an input
+        returns a cleaned string '''
+    dirty = input(prompt)
 
+    # FIXME would rather have whitelisting here
+    return re.sub("[!@#$%^&*(){}[\]|\\\\:;\"'<>,.?/_\-\+\=~`\n\t]", "", dirty)
 
 # MAIN
 def main():
@@ -191,4 +175,13 @@ def main():
 
             
 if __name__ == "__main__":
+    # set config variables
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    ENVIRONMENT = config.get("settings", "ENVIRONMENT")
+    host_name = config.get("database", "host_name")
+    user_name = config.get("database", "user_name")
+    user_password = config.get("database", "user_password")
+    db_name = config.get("database", "db_name")
+    
     main()
